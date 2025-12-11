@@ -1,0 +1,25 @@
+[project]
+name = "transformer-attention"
+version = "0.1.0"
+description = "How attention models work, from scratch."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib>=3.9.4",
+    "numpy>=1.24,<2.0",
+    "pandas>=2.3.3",
+    "pillow>=11.3.0",
+    "rich-argparse>=1.7.2",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
+    "torch>=2.2.0,<2.3",
+    "torchvision>=0.17.0,<0.18",
+    "tqdm>=4.67.1",
+]
+
+[tool.uv]
+# Support both Mac development and RHEL/Linux deployment
+environments = [
+    "python_version >= '3.9' and platform_system == 'Linux'",
+    "python_version >= '3.9' and platform_system == 'Darwin'",
+]

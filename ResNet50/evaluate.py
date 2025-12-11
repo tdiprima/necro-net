@@ -48,7 +48,7 @@ class SafeImageDataset(Dataset):
 
 
 # ---- config ----
-with open("../config.json", "r") as f:
+with open("config.json", "r") as f:
     config = json.load(f)
 
 VAL_DIR = Path(f"{config['test_root']}")

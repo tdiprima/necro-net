@@ -1,0 +1,10 @@
+{
+  "train_root": "/data/erich/raj/data/train",
+  "test_root": "/data/erich/raj/data/test",
+  "img_size": [224, 224],
+  "batch_size": 32,
+  "epochs": 15,
+  "lr": 0.001,
+  "model": "resnet50",
+  "output_dir": "outputs"
+}

@@ -18,7 +18,7 @@ def main():
     logger.add("training.log", rotation="10 MB", retention="7 days", level="INFO")
     logger.info("Starting training script")
 
-    with open("../config.json", "r") as f:
+    with open("config.json", "r") as f:
         config = json.load(f)
 
     TRAIN_ROOT = config["train_root"]
