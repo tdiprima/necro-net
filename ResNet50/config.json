@@ -1,6 +1,6 @@
 {
-  "train_root": "/data/erich/raj/data/train",
-  "test_root": "/data/erich/raj/data/test",
+  "train_root": "./local_data/train",
+  "test_root": "./local_data/test",
   "img_size": [224, 224],
   "batch_size": 32,
   "epochs": 15,
