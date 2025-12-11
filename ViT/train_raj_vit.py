@@ -33,8 +33,8 @@ def get_vit_model(num_classes, device, pretrained=True):
     """
     try:
         # torchvision >= 0.13 style
-        # model = models.vit_b_16(weights=models.ViT_B_16_Weights.DEFAULT if pretrained else None)
-        model = models.vit_b_16(weights=None)
+        model = models.vit_b_16(weights=models.ViT_B_16_Weights.DEFAULT if pretrained else None)
+        # model = models.vit_b_16(weights=None)
         in_features = model.heads.head.in_features
         model.heads.head = nn.Linear(in_features, num_classes)
     except Exception:
