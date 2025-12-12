@@ -1,3 +1,7 @@
+"""
+Loads images from class-specific folders into a PyTorch Dataset with configurable
+augmentations, normalization, and corrupted-image handling for training and validation.
+"""
 import os
 from glob import glob
 

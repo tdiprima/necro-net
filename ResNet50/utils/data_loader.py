@@ -1,3 +1,7 @@
+"""
+Creates PyTorch DataLoader objects for training and validation datasets with configurable
+batch size, worker count, shuffling, and optional CUDA pin_memory.
+"""
 import torch
 from torch.utils.data import DataLoader
 

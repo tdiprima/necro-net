@@ -1,3 +1,7 @@
+"""
+Converts a trained 10-class ResNet-50 PyTorch model to TorchScript (via scripting or
+tracing), saves it, and validates that the converted model's outputs match the original.
+"""
 import torch
 import torch.nn as nn
 import torchvision.models as models

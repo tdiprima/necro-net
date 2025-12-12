@@ -1,4 +1,8 @@
-# evaluation script
+"""
+Evaluates a trained ResNet image classifier on a test dataset, computes classification and
+ROC/AUC metrics, generates confusion matrices and plots, and saves all evaluation results
+to disk.
+"""
 import json
 import os
 from glob import glob
@@ -189,12 +193,12 @@ for i, color in zip(range(n_classes), colors):
 
 # Plot micro-average ROC curve
 plt.plot(
-    fpr["micro"],
-    tpr["micro"],
-    label=f'Micro-average (AUC = {roc_auc["micro"]:.3f})',
-    color="deeppink",
-    linestyle=":",
-    linewidth=4,
+        fpr["micro"],
+        tpr["micro"],
+        label=f'Micro-average (AUC = {roc_auc["micro"]:.3f})',
+        color="deeppink",
+        linestyle=":",
+        linewidth=4,
 )
 
 # Plot random classifier line

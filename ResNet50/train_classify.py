@@ -1,4 +1,8 @@
-# training script
+"""
+Trains and fine-tunes an ImageNet-pretrained ResNet50 for multi-class image classification
+with class-balanced loss, early stopping, learning rate scheduling, and exports the best
+model to ONNX and TorchScript formats.
+"""
 import json
 import os
 import time

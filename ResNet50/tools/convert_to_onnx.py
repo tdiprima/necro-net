@@ -1,3 +1,8 @@
+"""
+Converts a modified 10-class ResNet50 PyTorch model loaded from a checkpoint into an ONNX
+model using a dummy input for export.
+"""
+
 import torch
 import torch.onnx
 import torchvision.models as models

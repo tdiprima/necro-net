@@ -226,12 +226,6 @@ def main():
     logger.info(f"Training finished. Best val acc: {best_val_acc}")
     logger.info(f"Total training time: {int(hours)}h {int(minutes)}m {seconds:.1f}s")
 
-    # With pretrained model:
-    # Epoch 10/10 — time: 2493.6s
-    # Train loss: 0.0088  acc: 0.9970
-    # Val   loss: 0.3399  acc: 0.9290
-    # Training finished. Best val acc: 0.9402219140083218
-
 
 if __name__ == "__main__":
     main()
