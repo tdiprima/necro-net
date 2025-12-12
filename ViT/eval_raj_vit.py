@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import torch
+from raj_dataset import RajDataset
 from rich_argparse import RichHelpFormatter
-from sklearn.metrics import auc, classification_report, confusion_matrix, roc_curve
+from sklearn.metrics import (auc, classification_report, confusion_matrix,
+                             roc_curve)
 from torch.utils.data import DataLoader
 from torchvision import models
 from tqdm import tqdm
-
-from raj_dataset import RajDataset
 
 
 def load_vit_model(num_classes, device, checkpoint_path):

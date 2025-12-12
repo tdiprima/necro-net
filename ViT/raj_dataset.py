@@ -83,7 +83,9 @@ class RajDataset(Dataset):
 
         # Report any corrupted images
         if corrupted:
-            print(f"Warning: Found {len(corrupted)} corrupted/invalid images. They will be skipped.")
+            print(
+                f"Warning: Found {len(corrupted)} corrupted/invalid images. They will be skipped."
+            )
             print("First few corrupted files:")
             for img_path, error in corrupted[:5]:
                 print(f"  - {img_path}: {error}")

@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from loguru import logger
-
 from utils.data_loader import create_data_loaders_from_separate_datasets
 from utils.dataset import ImgDataset
 from utils.training import train_epoch, validate
@@ -30,7 +29,7 @@ def unfreeze_backbone(model):
 def main():
     # Setup logging
     logger.add("training.log", rotation="10 MB", retention="7 days", level="INFO")
-    logger.info("Starting training script")
+    logger.info("Starting ResNet50 training script")
 
     with open("config.json", "r") as f:
         config = json.load(f)
@@ -66,7 +65,6 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
-    # model = models.resnet50(pretrained=True)
     # model = models.resnet50(weights=None)  # No pretrained weights
     model = models.resnet50(weights="IMAGENET1K_V1")
     model.fc = nn.Linear(model.fc.in_features, len(CLASSES))
@@ -76,7 +74,9 @@ def main():
     for _, label in train_dataset.samples:
         class_counts[label] += 1
     total = sum(class_counts)
-    class_weights = torch.tensor([total / c for c in class_counts], dtype=torch.float32).to(device)
+    class_weights = torch.tensor(
+        [total / c for c in class_counts], dtype=torch.float32
+    ).to(device)
     class_weights = class_weights / class_weights.sum() * len(CLASSES)  # normalize
     logger.info(f"Class counts: {dict(zip(CLASSES, class_counts))}")
     logger.info(f"Class weights: {class_weights.tolist()}")
@@ -84,7 +84,7 @@ def main():
     loss_fn = nn.CrossEntropyLoss(weight=class_weights)
     opt = torch.optim.Adam(model.parameters(), lr=LR)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        opt, mode='max', factor=0.3, patience=2, min_lr=1e-6
+        opt, mode="max", factor=0.3, patience=2, min_lr=1e-6
     )
 
     logger.info("Model initialized: ResNet50 with ImageNet pretrained weights")
@@ -96,7 +96,9 @@ def main():
     best_acc = 0
     early_stop_counter = 0
     best_model_state = None
-    logger.info(f"Starting training for {EPOCHS} epochs (early stop patience: {EARLY_STOP_PATIENCE})")
+    logger.info(
+        f"Starting training for {EPOCHS} epochs (early stop patience: {EARLY_STOP_PATIENCE})"
+    )
 
     training_start_time = time.time()
 
@@ -106,7 +108,7 @@ def main():
             unfreeze_backbone(model)
             # Lower LR when unfreezing for fine-tuning
             for param_group in opt.param_groups:
-                param_group['lr'] = LR * 0.1
+                param_group["lr"] = LR * 0.1
             logger.info(f"Backbone unfrozen at epoch {epoch}. LR reduced to {LR * 0.1}")
 
         logger.info(f"Starting epoch {epoch}/{EPOCHS}")
@@ -123,15 +125,15 @@ def main():
             best_acc = acc
             early_stop_counter = 0
             best_model_state = model.state_dict().copy()
-            torch.save(
-                best_model_state, os.path.join("models", "DecaResNet_v3.pth")
-            )
+            torch.save(best_model_state, os.path.join("models", "DecaResNet_v3.pth"))
             save_msg = f"New best accuracy: {acc:.4f}! Saved DecaResNet_v3.pth"
             print("Saved DecaResNet_v3.pth")
             logger.info(save_msg)
         else:
             early_stop_counter += 1
-            logger.info(f"Current accuracy {acc:.4f} < best accuracy {best_acc:.4f} (early stop counter: {early_stop_counter}/{EARLY_STOP_PATIENCE})")
+            logger.info(
+                f"Current accuracy {acc:.4f} < best accuracy {best_acc:.4f} (early stop counter: {early_stop_counter}/{EARLY_STOP_PATIENCE})"
+            )
 
         if early_stop_counter >= EARLY_STOP_PATIENCE:
             logger.info(f"Early stopping triggered after {epoch} epochs")
@@ -143,7 +145,9 @@ def main():
     total_training_time = time.time() - training_start_time
     minutes, seconds = divmod(total_training_time, 60)
     hours, minutes = divmod(minutes, 60)
-    time_msg = f"Training completed in {int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    time_msg = (
+        f"Training completed in {int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    )
     print(time_msg)
     logger.info(time_msg)
 

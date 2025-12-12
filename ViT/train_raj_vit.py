@@ -19,12 +19,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from loguru import logger
+from raj_dataset import RajDataset
 from rich_argparse import RichHelpFormatter
 from torch.utils.data import DataLoader, random_split
 from torchvision import models
 from tqdm import tqdm
-
-from raj_dataset import RajDataset
 
 
 def get_vit_model(num_classes, device, pretrained=True):
@@ -33,7 +33,9 @@ def get_vit_model(num_classes, device, pretrained=True):
     """
     try:
         # torchvision >= 0.13 style
-        model = models.vit_b_16(weights=models.ViT_B_16_Weights.DEFAULT if pretrained else None)
+        model = models.vit_b_16(
+            weights=models.ViT_B_16_Weights.DEFAULT if pretrained else None
+        )
         # model = models.vit_b_16(weights=None)
         in_features = model.heads.head.in_features
         model.heads.head = nn.Linear(in_features, num_classes)
@@ -91,6 +93,9 @@ def eval_model(model, loader, criterion, device):
 
 
 def main():
+    logger.add("training.log", rotation="10 MB", retention="7 days", level="INFO")
+    logger.info("Starting ViT training script")
+
     home = os.path.expanduser("~")
     parser = argparse.ArgumentParser(
         description="Train ViT on Raj dataset",
@@ -124,13 +129,13 @@ def main():
     device = torch.device(
         args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     )
-    print("Using device:", device)
+    logger.info("Using device:", device)
 
     # Optimize CPU threading for 72 cores
     if device.type == "cpu":
         torch.set_num_threads(args.cpu_threads)
         torch.set_num_interop_threads(8)
-        print(f"CPU threads set to: {args.cpu_threads}, interop threads: 8")
+        logger.info(f"CPU threads set to: {args.cpu_threads}, interop threads: 8")
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -153,8 +158,10 @@ def main():
     )
 
     num_classes = ds.num_classes()
-    print(f"Dataset size: {n}, train: {train_n}, val: {val_n}, classes: {num_classes}")
-    print("Classes:", ds.class_names())
+    logger.info(
+        f"Dataset size: {n}, train: {train_n}, val: {val_n}, classes: {num_classes}"
+    )
+    logger.info("Classes:", ds.class_names())
 
     # Model
     model = get_vit_model(num_classes, device, pretrained=True)
@@ -176,9 +183,9 @@ def main():
         scheduler.step()
 
         elapsed = time.time() - since
-        print(f"Epoch {epoch}/{args.epochs} — time: {elapsed:.1f}s")
-        print(f"  Train loss: {train_loss:.4f}  acc: {train_acc:.4f}")
-        print(f"  Val   loss: {val_loss:.4f}  acc: {val_acc:.4f}")
+        logger.info(f"Epoch {epoch}/{args.epochs} — time: {elapsed:.1f}s")
+        logger.info(f"  Train loss: {train_loss:.4f}  acc: {train_acc:.4f}")
+        logger.info(f"  Val   loss: {val_loss:.4f}  acc: {val_acc:.4f}")
 
         # save checkpoint
         ckpt = {
@@ -195,13 +202,13 @@ def main():
             torch.save(
                 model.state_dict(), os.path.join(args.output_dir, "vit_best.pth")
             )
-            print("  Saved best model.")
+            logger.info("  Saved best model.")
 
     total_elapsed = time.time() - total_start_time
     hours, remainder = divmod(total_elapsed, 3600)
     minutes, seconds = divmod(remainder, 60)
-    print(f"Training finished. Best val acc: {best_val_acc}")
-    print(f"Total training time: {int(hours)}h {int(minutes)}m {seconds:.1f}s")
+    logger.info(f"Training finished. Best val acc: {best_val_acc}")
+    logger.info(f"Total training time: {int(hours)}h {int(minutes)}m {seconds:.1f}s")
 
     # With pretrained model:
     # Epoch 10/10 — time: 2493.6s
