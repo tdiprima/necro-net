@@ -5,7 +5,7 @@ Optimized for multi-core CPU training (default: 70 threads for 72-core systems).
 
 Example usage:
   uv run train_raj_vit.py --epochs 8 --batch_size 16 --output_dir models
-  uv run train_raj_vit.py --epochs 10 --cpu_threads 72 --num_workers 20
+  uv run train_raj_vit.py --epochs 20 --patience 5 --cpu_threads 72 --num_workers 20
 
 You can override the default paths if needed using the --root_dir argument.
 """
@@ -123,6 +123,12 @@ def main():
         default=70,
         help="Number of CPU threads for PyTorch computation",
     )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=5,
+        help="Early stopping patience (epochs without improvement)",
+    )
     args = parser.parse_args()
 
     # device
@@ -173,6 +179,7 @@ def main():
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     best_val_acc = 0.0
+    early_stop_counter = 0
     total_start_time = time.time()
     for epoch in range(1, args.epochs + 1):
         since = time.time()
@@ -196,13 +203,22 @@ def main():
         }
         torch.save(ckpt, os.path.join(args.output_dir, f"vit_epoch{epoch}.pth"))
 
-        # keep best
+        # keep best + early stopping
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            early_stop_counter = 0
             torch.save(
                 model.state_dict(), os.path.join(args.output_dir, "vit_best.pth")
             )
             logger.info("  Saved best model.")
+        else:
+            early_stop_counter += 1
+            logger.info(
+                f"  No improvement ({early_stop_counter}/{args.patience})"
+            )
+            if early_stop_counter >= args.patience:
+                logger.info(f"Early stopping triggered at epoch {epoch}")
+                break
 
     total_elapsed = time.time() - total_start_time
     hours, remainder = divmod(total_elapsed, 3600)
