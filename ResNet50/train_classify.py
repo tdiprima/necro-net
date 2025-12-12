@@ -124,10 +124,10 @@ def main():
             early_stop_counter = 0
             best_model_state = model.state_dict().copy()
             torch.save(
-                best_model_state, os.path.join("models", "DecaResNet_v2.pth")
+                best_model_state, os.path.join("models", "DecaResNet_v3.pth")
             )
-            save_msg = f"New best accuracy: {acc:.4f}! Saved DecaResNet_v2.pth"
-            print("Saved DecaResNet_v2.pth")
+            save_msg = f"New best accuracy: {acc:.4f}! Saved DecaResNet_v3.pth"
+            print("Saved DecaResNet_v3.pth")
             logger.info(save_msg)
         else:
             early_stop_counter += 1
@@ -154,16 +154,16 @@ def main():
         model.load_state_dict(best_model_state)
     model.eval()
     torch.onnx.export(
-        model, dummy, os.path.join("models", "DecaResNet_v2.onnx"), opset_version=11
+        model, dummy, os.path.join("models", "DecaResNet_v3.onnx"), opset_version=11
     )
-    print("Exported DecaResNet_v2.onnx")
+    print("Exported DecaResNet_v3.onnx")
     logger.info("ONNX export completed successfully")
 
     # export to TorchScript
     logger.info("Starting TorchScript export")
     traced_model = torch.jit.trace(model, dummy)
-    traced_model.save(os.path.join("models", "DecaResNet_v2.pt"))
-    print("Exported DecaResNet_v2.pt")
+    traced_model.save(os.path.join("models", "DecaResNet_v3.pt"))
+    print("Exported DecaResNet_v3.pt")
     logger.info("TorchScript export completed successfully")
     logger.info(f"Training completed! Best validation accuracy: {best_acc:.4f}")
 
