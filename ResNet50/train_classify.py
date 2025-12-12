@@ -1,6 +1,7 @@
 # training script
 import json
 import os
+import time
 from pathlib import Path
 
 import torch
@@ -11,6 +12,19 @@ from loguru import logger
 from utils.data_loader import create_data_loaders_from_separate_datasets
 from utils.dataset import ImgDataset
 from utils.training import train_epoch, validate
+
+
+def freeze_backbone(model):
+    """Freeze all layers except the final fc layer."""
+    for name, param in model.named_parameters():
+        if "fc" not in name:
+            param.requires_grad = False
+
+
+def unfreeze_backbone(model):
+    """Unfreeze all layers."""
+    for param in model.parameters():
+        param.requires_grad = True
 
 
 def main():
@@ -30,6 +44,8 @@ def main():
     BATCH = config["batch_size"]
     EPOCHS = config["epochs"]
     LR = config["lr"]
+    UNFREEZE_EPOCH = config.get("unfreeze_epoch", 6)
+    EARLY_STOP_PATIENCE = config.get("early_stop_patience", 8)
 
     logger.info(
         f"Configuration loaded: {EPOCHS} epochs, batch size {BATCH}, learning rate {LR}"
@@ -55,24 +71,49 @@ def main():
     model = models.resnet50(weights="IMAGENET1K_V1")
     model.fc = nn.Linear(model.fc.in_features, len(CLASSES))
     model = model.to(device)
-    loss_fn = nn.CrossEntropyLoss()
+    # Compute class weights for imbalanced data
+    class_counts = [0] * len(CLASSES)
+    for _, label in train_dataset.samples:
+        class_counts[label] += 1
+    total = sum(class_counts)
+    class_weights = torch.tensor([total / c for c in class_counts], dtype=torch.float32).to(device)
+    class_weights = class_weights / class_weights.sum() * len(CLASSES)  # normalize
+    logger.info(f"Class counts: {dict(zip(CLASSES, class_counts))}")
+    logger.info(f"Class weights: {class_weights.tolist()}")
+
+    loss_fn = nn.CrossEntropyLoss(weight=class_weights)
     opt = torch.optim.Adam(model.parameters(), lr=LR)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=3)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt, mode='max', factor=0.3, patience=2, min_lr=1e-6
+    )
 
     logger.info("Model initialized: ResNet50 with ImageNet pretrained weights")
 
+    # Freeze backbone for initial epochs
+    freeze_backbone(model)
+    logger.info(f"Backbone frozen. Will unfreeze at epoch {UNFREEZE_EPOCH}")
+
     best_acc = 0
-    early_stop_patience = 5
     early_stop_counter = 0
     best_model_state = None
-    logger.info(f"Starting training for {EPOCHS} epochs")
+    logger.info(f"Starting training for {EPOCHS} epochs (early stop patience: {EARLY_STOP_PATIENCE})")
+
+    training_start_time = time.time()
 
     for epoch in range(1, EPOCHS + 1):
+        # Unfreeze backbone after initial frozen epochs
+        if epoch == UNFREEZE_EPOCH:
+            unfreeze_backbone(model)
+            # Lower LR when unfreezing for fine-tuning
+            for param_group in opt.param_groups:
+                param_group['lr'] = LR * 0.1
+            logger.info(f"Backbone unfrozen at epoch {epoch}. LR reduced to {LR * 0.1}")
+
         logger.info(f"Starting epoch {epoch}/{EPOCHS}")
         tr_loss = train_epoch(model, train_loader, opt, loss_fn, device)
         val_loss, acc = validate(model, val_loader, loss_fn, device)
 
-        scheduler.step(val_loss)
+        scheduler.step(acc)  # Step on validation accuracy, not loss
 
         epoch_msg = f"Epoch {epoch}: train_loss {tr_loss:.4f} val_loss {val_loss:.4f} val_acc {acc:.4f}"
         print(epoch_msg)
@@ -90,14 +131,21 @@ def main():
             logger.info(save_msg)
         else:
             early_stop_counter += 1
-            logger.info(f"Current accuracy {acc:.4f} < best accuracy {best_acc:.4f} (early stop counter: {early_stop_counter}/{early_stop_patience})")
+            logger.info(f"Current accuracy {acc:.4f} < best accuracy {best_acc:.4f} (early stop counter: {early_stop_counter}/{EARLY_STOP_PATIENCE})")
 
-        if early_stop_counter >= early_stop_patience:
+        if early_stop_counter >= EARLY_STOP_PATIENCE:
             logger.info(f"Early stopping triggered after {epoch} epochs")
             print(f"Early stopping triggered after {epoch} epochs")
             break
 
         logger.info(f"Completed epoch {epoch}/{EPOCHS}")
+
+    total_training_time = time.time() - training_start_time
+    minutes, seconds = divmod(total_training_time, 60)
+    hours, minutes = divmod(minutes, 60)
+    time_msg = f"Training completed in {int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    print(time_msg)
+    logger.info(time_msg)
 
     # export to ONNX
     logger.info("Starting ONNX export")
