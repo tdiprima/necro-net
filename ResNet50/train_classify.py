@@ -122,7 +122,6 @@ def main():
         scheduler.step(acc)  # Step on validation accuracy, not loss
 
         epoch_msg = f"Epoch {epoch}: train_loss {tr_loss:.4f} val_loss {val_loss:.4f} val_acc {acc:.4f}"
-        print(epoch_msg)
         logger.info(epoch_msg)
 
         if acc > best_acc:
@@ -131,7 +130,6 @@ def main():
             best_model_state = model.state_dict().copy()
             torch.save(best_model_state, os.path.join("models", "DecaResNet_v3.pth"))
             save_msg = f"New best accuracy: {acc:.4f}! Saved DecaResNet_v3.pth"
-            print("Saved DecaResNet_v3.pth")
             logger.info(save_msg)
         else:
             early_stop_counter += 1
@@ -141,7 +139,6 @@ def main():
 
         if early_stop_counter >= EARLY_STOP_PATIENCE:
             logger.info(f"Early stopping triggered after {epoch} epochs")
-            print(f"Early stopping triggered after {epoch} epochs")
             break
 
         logger.info(f"Completed epoch {epoch}/{EPOCHS}")
@@ -152,7 +149,6 @@ def main():
     time_msg = (
         f"Training completed in {int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
     )
-    print(time_msg)
     logger.info(time_msg)
 
     # export to ONNX
@@ -161,18 +157,22 @@ def main():
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
     model.eval()
+    # torch.onnx.export(model, dummy, os.path.join("models", "DecaResNet_v3.onnx"), opset_version=11)
     torch.onnx.export(
-        model, dummy, os.path.join("models", "DecaResNet_v3.onnx"), opset_version=11
+        model,
+        dummy,
+        os.path.join("models", "DecaResNet_v3.onnx"),
+        opset_version=11,
+        dynamo=True  # Use the new exporter
+        # dynamo=False  # Explicitly use legacy exporter
     )
-    print("Exported DecaResNet_v3.onnx")
-    logger.info("ONNX export completed successfully")
+    logger.info("ONNX export completed successfully: DecaResNet_v3.onnx")
 
     # export to TorchScript
     logger.info("Starting TorchScript export")
     traced_model = torch.jit.trace(model, dummy)
     traced_model.save(os.path.join("models", "DecaResNet_v3.pt"))
-    print("Exported DecaResNet_v3.pt")
-    logger.info("TorchScript export completed successfully")
+    logger.info("TorchScript export completed successfully: DecaResNet_v3.pt")
     logger.info(f"Training completed! Best validation accuracy: {best_acc:.4f}")
 
 
