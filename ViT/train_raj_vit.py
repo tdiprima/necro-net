@@ -93,7 +93,7 @@ def eval_model(model, loader, criterion, device):
 
 
 def main():
-    logger.add("training.log", rotation="10 MB", retention="7 days", level="INFO")
+    logger.add("training.log", rotation="10 MB", level="INFO")
     logger.info("Starting ViT training script")
 
     home = os.path.expanduser("~")

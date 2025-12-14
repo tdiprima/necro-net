@@ -33,7 +33,7 @@ def unfreeze_backbone(model):
 
 def main():
     # Setup logging
-    logger.add("training.log", rotation="10 MB", retention="7 days", level="INFO")
+    logger.add("training.log", rotation="10 MB", level="INFO")
     logger.info("Starting ResNet50 training script")
 
     with open("config.json", "r") as f:
