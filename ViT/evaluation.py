@@ -9,10 +9,10 @@ Performs inference on a dataset and outputs comprehensive evaluation metrics inc
 
 Usage examples:
 # ResNet50
-uv run unified_evaluation.py --checkpoint models/DecaResNet_v3.pth --architecture resnet50
+uv run evaluation.py --checkpoint ../ResNet50/models/DecaResNet_v3.pth --architecture resnet50
 
 # ViT
-uv run unified_evaluation.py --checkpoint models/vit_best.pth --architecture vit
+uv run evaluation.py --checkpoint models/vit_best.pth --architecture vit
 """
 
 import argparse
