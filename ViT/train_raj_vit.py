@@ -213,9 +213,7 @@ def main():
             logger.info("  Saved best model.")
         else:
             early_stop_counter += 1
-            logger.info(
-                f"  No improvement ({early_stop_counter}/{args.patience})"
-            )
+            logger.info(f"  No improvement ({early_stop_counter}/{args.patience})")
             if early_stop_counter >= args.patience:
                 logger.info(f"Early stopping triggered at epoch {epoch}")
                 break

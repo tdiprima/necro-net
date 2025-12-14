@@ -35,10 +35,10 @@ from tqdm import tqdm
 
 def load_model(architecture, num_classes, device, checkpoint_path):
     """Load either ResNet50 or ViT model"""
-    if architecture.lower() == 'resnet50':
+    if architecture.lower() == "resnet50":
         model = models.resnet50(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
-    elif architecture.lower() in ['vit', 'vit_b_16']:
+    elif architecture.lower() in ["vit", "vit_b_16"]:
         try:
             model = models.vit_b_16(weights=models.ViT_B_16_Weights.DEFAULT)
             in_features = model.heads.head.in_features
@@ -89,9 +89,9 @@ def main():
     parser.add_argument(
         "--architecture",
         type=str,
-        choices=['resnet50', 'vit', 'vit_b_16'],
-        default='vit',
-        help="Model architecture to evaluate"
+        choices=["resnet50", "vit", "vit_b_16"],
+        default="vit",
+        help="Model architecture to evaluate",
     )
     args = parser.parse_args()
 
@@ -255,24 +255,24 @@ def main():
     # - Treats all predictions as one big binary problem
     # - Weights each sample equally (good for imbalanced datasets)
     # - Computed by flattening all labels and probabilities
-    
+
     # Binarize labels for multiclass ROC
     y_bin = label_binarize(all_labels, classes=range(num_classes))
-    
+
     # Handle binary classification edge case
     if num_classes == 2:
         y_bin = np.column_stack([1 - y_bin, y_bin])
-    
+
     # Compute micro-average ROC curve and AUC by flattening (raveling) arrays
     fpr["micro"], tpr["micro"], _ = roc_curve(y_bin.ravel(), all_probs.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-    
+
     print(f"Micro-average AUC: {roc_auc['micro']:.4f}")
-    
+
     # Update ROC plot to include micro-average curve
     plt.figure(figsize=(12, 8))
     colors = plt.cm.tab10(np.linspace(0, 1, num_classes))
-    
+
     # Plot ROC curve for each class
     for i, color in zip(range(num_classes), colors):
         plt.plot(
@@ -282,7 +282,7 @@ def main():
             lw=2,
             label=f"{ds.class_names()[i]} (AUC = {roc_auc[i]:.4f})",
         )
-    
+
     # Plot micro-average ROC curve
     plt.plot(
         fpr["micro"],
@@ -292,7 +292,7 @@ def main():
         linestyle=":",
         linewidth=4,
     )
-    
+
     plt.plot([0, 1], [0, 1], "k--", lw=2, label="Random Classifier")
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])

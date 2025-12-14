@@ -3,6 +3,7 @@ Trains and fine-tunes an ImageNet-pretrained ResNet50 for multi-class image clas
 with class-balanced loss, early stopping, learning rate scheduling, and exports the best
 model to ONNX and TorchScript formats.
 """
+
 import json
 import os
 import time
@@ -163,7 +164,7 @@ def main():
         dummy,
         os.path.join("models", "DecaResNet_v3.onnx"),
         opset_version=11,
-        dynamo=True  # Use the new exporter
+        dynamo=True,  # Use the new exporter
         # dynamo=False  # Explicitly use legacy exporter
     )
     logger.info("ONNX export completed successfully: DecaResNet_v3.onnx")
