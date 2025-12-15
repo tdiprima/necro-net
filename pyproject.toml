@@ -3,7 +3,7 @@ name = "necro-net"
 version = "0.1.0"
 description = "Deep learning pathology image classification"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "loguru>=0.7.3",
     "matplotlib>=3.9.4",
@@ -15,7 +15,33 @@ dependencies = [
     "rich-argparse>=1.7.2",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
-    "torch>=2.8.0",
-    "torchvision>=0.23.0",
+    "torch>=2.6.0",
+    "torchvision>=0.15.0",
     "tqdm>=4.67.1",
+]
+
+[tool.uv]
+# Ensure wheels exist for Linux ARM (aarch64) platform
+required-environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'"]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  # Use CUDA 12.4 wheels on x86_64 Linux or Windows
+  { index = "pytorch-cu124", marker = "(sys_platform == 'linux' and platform_machine == 'x86_64') or sys_platform == 'win32'" },
+  # Use CUDA 12.6 wheels on Linux aarch64 (ARM)
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" }
+]
+torchvision = [
+  { index = "pytorch-cu124", marker = "(sys_platform == 'linux' and platform_machine == 'x86_64') or sys_platform == 'win32'" },
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" }
 ]
