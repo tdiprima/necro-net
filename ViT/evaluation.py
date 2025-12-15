@@ -84,7 +84,7 @@ def main():
     parser.add_argument("--img_size", type=int, default=224)
     parser.add_argument("--output_csv", type=str, default="preds.csv")
     parser.add_argument("--device", type=str, default=None)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--num_workers", type=int, default=16)
 
     parser.add_argument(
         "--architecture",

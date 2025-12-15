@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 
 def create_data_loaders_from_separate_datasets(
-    train_dataset, val_dataset, batch_size, num_workers=8
+    train_dataset, val_dataset, batch_size, num_workers=16
 ):
     """
     Create train and validation data loaders from separate pre-split datasets.
