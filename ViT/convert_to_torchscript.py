@@ -1,12 +1,12 @@
 """
 Converts a trained PyTorch ViT model to TorchScript format (.pt) for deployment.
 TorchScript models can be used in production environments without Python dependencies.
-uv run convert_to_torchscript.py --checkpoint ../models/vit_best.pth --num_classes 10 --output ../models/vit_model.pt
+uv run convert_to_torchscript.py --checkpoint models/vit_best.pth --num_classes 10 --output models/vit_model.pt
 
 uv run convert_to_torchscript.py \
-  --checkpoint ../models/vit_best.pth \
+  --checkpoint models/vit_best.pth \
   --num_classes 10 \
-  --output ../models/vit_model.pt \
+  --output models/vit_model.pt \
   --verify
 """
 
