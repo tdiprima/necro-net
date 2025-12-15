@@ -11,4 +11,8 @@ wheels/
 
 training.log
 uv.lock
+evaluation_results/
+*.onnx
+*.pt
+*.pth
 .claude/
