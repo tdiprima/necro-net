@@ -662,6 +662,8 @@ def main():
 
 
 if __name__ == "__main__":
-    model, history = main()
-    print(model)
-    print(history)
+    result = main()
+    if result is not None:
+        model, history = result
+        print(model)
+        print(history)
