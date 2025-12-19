@@ -132,11 +132,15 @@ class ProstatePathologyDataset(Dataset):
         self._load_samples()
 
     def _extract_label_from_filename(self, filename):
-        """Extract label from filename pattern *-{label}.png"""
+        """Extract label from filename pattern *_{label}.png or *-{label}.png"""
         try:
-            # Get the part before .png and after the last dash
+            # Get the part before .png and after the last dash or underscore
             name_without_ext = filename.rsplit('.', 1)[0]
-            label_str = name_without_ext.rsplit('-', 1)[-1]
+            # Try underscore first, then dash
+            if '_' in name_without_ext:
+                label_str = name_without_ext.rsplit('_', 1)[-1]
+            else:
+                label_str = name_without_ext.rsplit('-', 1)[-1]
             return int(label_str)
         except (ValueError, IndexError):
             return None
