@@ -58,7 +58,7 @@ class Config:
     # Training hyperparameters
     BATCH_SIZE = 32  # Smaller batch for ResNet50 memory requirements
     LEARNING_RATE = 1e-4  # Lower LR for fine-tuning pretrained models
-    NUM_EPOCHS = 45  # More epochs for medical imaging convergence
+    NUM_EPOCHS = 65  # More epochs for medical imaging convergence
     WEIGHT_DECAY = 1e-4  # L2 regularization
 
     # Learning rate scheduler
