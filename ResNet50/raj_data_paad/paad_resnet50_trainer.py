@@ -58,7 +58,7 @@ class Config:
     # Training hyperparameters
     BATCH_SIZE = 32  # Smaller batch for ResNet50 memory requirements
     LEARNING_RATE = 1e-4  # Lower LR for fine-tuning pretrained models
-    NUM_EPOCHS = 25  # More epochs for medical imaging convergence
+    NUM_EPOCHS = 45  # More epochs for medical imaging convergence
     WEIGHT_DECAY = 1e-4  # L2 regularization
 
     # Learning rate scheduler
@@ -284,6 +284,41 @@ def create_data_loaders(train_dataset, test_dataset, config):
     return train_loader, test_loader
 
 
+def compute_class_weights(dataset, logger):
+    """
+    Compute class weights for imbalanced datasets.
+    Uses inverse frequency weighting: weight = total_samples / (num_classes * class_count)
+    """
+    num_classes = len(dataset.classes)
+    total_samples = len(dataset)
+
+    # Count samples per class
+    class_counts = [0] * num_classes
+    for _, label in dataset.samples:
+        class_counts[label] += 1
+
+    # Compute weights using balanced formula
+    class_weights = []
+    for count in class_counts:
+        if count > 0:
+            weight = total_samples / (num_classes * count)
+        else:
+            weight = 0.0
+        class_weights.append(weight)
+
+    # Convert to tensor
+    class_weights = torch.FloatTensor(class_weights)
+
+    # Log the weights
+    logger.log("\nClass Weights (for imbalanced dataset):")
+    for idx, (class_name, count, weight) in enumerate(
+        zip(dataset.classes, class_counts, class_weights)
+    ):
+        logger.log(f"  [{idx}] {class_name}: {count} samples, weight={weight:.4f}")
+
+    return class_weights
+
+
 # =============================================================================
 # MODEL DEFINITION
 # =============================================================================
@@ -490,6 +525,10 @@ def main():
     logger.log(f"  Training batches: {len(train_loader)}")
     logger.log(f"  Test batches: {len(test_loader)}")
 
+    # Compute class weights for imbalanced dataset
+    class_weights = compute_class_weights(train_dataset, logger)
+    class_weights = class_weights.to(device)
+
     # Initialize model
     logger.log("\nInitializing ResNet50 model...")
     model = create_resnet50_model(config.NUM_CLASSES, pretrained=config.PRETRAINED)
@@ -502,8 +541,8 @@ def main():
             f"  Backbone frozen for first {config.FREEZE_BACKBONE_EPOCHS} epochs"
         )
 
-    # Loss function with class weights if imbalanced (optional)
-    criterion = nn.CrossEntropyLoss()
+    # Loss function with class weights for imbalanced dataset
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # Optimizer - only optimize trainable parameters
     optimizer = optim.AdamW(
