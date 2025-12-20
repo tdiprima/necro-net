@@ -286,9 +286,18 @@ def create_data_loaders(train_dataset, test_dataset, config):
 
 def compute_class_weights(dataset, logger):
     """
-    Compute class weights for imbalanced datasets.
-    Uses inverse frequency weighting: weight = total_samples / (num_classes * class_count)
+    Compute class weights for imbalanced datasets using SOFT weighting.
+    
+    Uses square-root inverse frequency: weight = sqrt(max_count / class_count)
+    This is gentler than full inverse frequency, balancing:
+    - Better minority class recognition (important for rare tissue types)
+    - Maintaining good overall accuracy (not over-penalizing majority classes)
+    
+    For medical imaging, this approach helps catch rare but clinically 
+    important findings without sacrificing too much overall performance.
     """
+    import math
+    
     num_classes = len(dataset.classes)
     total_samples = len(dataset)
 
@@ -297,11 +306,14 @@ def compute_class_weights(dataset, logger):
     for _, label in dataset.samples:
         class_counts[label] += 1
 
-    # Compute weights using balanced formula
+    max_count = max(class_counts)
+    
+    # Compute weights using SOFT square-root formula
+    # This gives Tumor ~1.0 and rare classes ~7x (vs 50x with full inverse)
     class_weights = []
     for count in class_counts:
         if count > 0:
-            weight = total_samples / (num_classes * count)
+            weight = math.sqrt(max_count / count)
         else:
             weight = 0.0
         class_weights.append(weight)
@@ -310,7 +322,8 @@ def compute_class_weights(dataset, logger):
     class_weights = torch.FloatTensor(class_weights)
 
     # Log the weights
-    logger.log("\nClass Weights (for imbalanced dataset):")
+    logger.log("\nClass Weights (SOFT square-root weighting for medical imaging):")
+    logger.log("  (Balances minority class detection with overall accuracy)")
     for idx, (class_name, count, weight) in enumerate(
         zip(dataset.classes, class_counts, class_weights)
     ):
