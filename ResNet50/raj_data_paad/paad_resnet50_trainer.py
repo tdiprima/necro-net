@@ -154,17 +154,35 @@ def log_system_info(logger):
 # =============================================================================
 
 
-def safe_image_loader(path):
+class SafeImageFolder(datasets.ImageFolder):
     """
-    Custom image loader that handles corrupt images gracefully.
-    Returns None for corrupt images instead of crashing.
+    Custom ImageFolder that gracefully handles corrupt images.
+    Skips corrupt images during training instead of crashing.
     """
-    try:
-        with Image.open(path) as img:
-            return img.convert("RGB")
-    except Exception as e:
-        print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
-        return None
+
+    def __getitem__(self, index):
+        """
+        Override __getitem__ to catch and handle corrupt images.
+        Returns None for corrupt images which are filtered out by collate_fn.
+        """
+        path, target = self.samples[index]
+        try:
+            # Load image
+            sample = self.loader(path)
+            if sample is None:
+                return None
+
+            # Apply transforms
+            if self.transform is not None:
+                sample = self.transform(sample)
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+
+            return sample, target
+
+        except Exception as e:
+            print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
+            return None
 
 
 def collate_fn_skip_corrupt(batch):
@@ -172,7 +190,7 @@ def collate_fn_skip_corrupt(batch):
     Custom collate function that filters out None values from corrupt images.
     """
     # Filter out None values (corrupt images)
-    batch = [item for item in batch if item[0] is not None]
+    batch = [item for item in batch if item is not None]
 
     # If entire batch is corrupt, return empty tensors
     if len(batch) == 0:
@@ -223,18 +241,14 @@ def get_data_transforms(config):
 
 
 def load_datasets(config, train_transform, test_transform, logger):
-    """Load PAAD training and test datasets using ImageFolder with corrupt image handling."""
+    """Load PAAD training and test datasets using SafeImageFolder with corrupt image handling."""
     logger.log("\nLoading PAAD dataset...")
     logger.log(f"  Train directory: {config.TRAIN_DIR}")
     logger.log(f"  Test directory: {config.TEST_DIR}")
 
-    train_dataset = datasets.ImageFolder(
-        root=config.TRAIN_DIR, transform=train_transform, loader=safe_image_loader
-    )
+    train_dataset = SafeImageFolder(root=config.TRAIN_DIR, transform=train_transform)
 
-    test_dataset = datasets.ImageFolder(
-        root=config.TEST_DIR, transform=test_transform, loader=safe_image_loader
-    )
+    test_dataset = SafeImageFolder(root=config.TEST_DIR, transform=test_transform)
 
     # Log class information
     logger.log(f"\nFound {len(train_dataset.classes)} classes:")
