@@ -446,10 +446,16 @@ def main():
     # Also print a simple message to stdout
     print(f"PAAD ResNet50 Training Started")
     print(f"Log file: {config.LOG_FILE}")
-    print(f"Training in progress...")
 
     # Log system information and get device
     device = log_system_info(logger)
+
+    # Print device info to stdout
+    if torch.cuda.is_available():
+        print(f"Device: GPU ({torch.cuda.get_device_name(0)})")
+    else:
+        print(f"Device: CPU (WARNING: Training will be slow)")
+    print(f"Training in progress...")
 
     # Adjust workers for CPU-only systems
     if not torch.cuda.is_available():
