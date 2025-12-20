@@ -11,6 +11,7 @@ Combines best practices for PyTorch training including:
 - Non-blocking async transfers
 - Multi-worker data loading
 - Data augmentation for medical images
+- Corrupt image handling (automatically skips corrupted files)
 - Saves both best model and final model
 
 OUTPUT MODELS:
@@ -28,6 +29,7 @@ from time import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
@@ -148,6 +150,39 @@ def log_system_info(logger):
 
 
 # =============================================================================
+# CORRUPT IMAGE HANDLING
+# =============================================================================
+
+
+def safe_image_loader(path):
+    """
+    Custom image loader that handles corrupt images gracefully.
+    Returns None for corrupt images instead of crashing.
+    """
+    try:
+        with Image.open(path) as img:
+            return img.convert("RGB")
+    except Exception as e:
+        print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
+        return None
+
+
+def collate_fn_skip_corrupt(batch):
+    """
+    Custom collate function that filters out None values from corrupt images.
+    """
+    # Filter out None values (corrupt images)
+    batch = [item for item in batch if item[0] is not None]
+
+    # If entire batch is corrupt, return empty tensors
+    if len(batch) == 0:
+        return torch.tensor([]), torch.tensor([])
+
+    # Use default collate for valid samples
+    return torch.utils.data.dataloader.default_collate(batch)
+
+
+# =============================================================================
 # DATA LOADING
 # =============================================================================
 
@@ -188,16 +223,18 @@ def get_data_transforms(config):
 
 
 def load_datasets(config, train_transform, test_transform, logger):
-    """Load PAAD training and test datasets using ImageFolder."""
+    """Load PAAD training and test datasets using ImageFolder with corrupt image handling."""
     logger.log("\nLoading PAAD dataset...")
     logger.log(f"  Train directory: {config.TRAIN_DIR}")
     logger.log(f"  Test directory: {config.TEST_DIR}")
 
     train_dataset = datasets.ImageFolder(
-        root=config.TRAIN_DIR, transform=train_transform
+        root=config.TRAIN_DIR, transform=train_transform, loader=safe_image_loader
     )
 
-    test_dataset = datasets.ImageFolder(root=config.TEST_DIR, transform=test_transform)
+    test_dataset = datasets.ImageFolder(
+        root=config.TEST_DIR, transform=test_transform, loader=safe_image_loader
+    )
 
     # Log class information
     logger.log(f"\nFound {len(train_dataset.classes)} classes:")
@@ -210,7 +247,7 @@ def load_datasets(config, train_transform, test_transform, logger):
 
 
 def create_data_loaders(train_dataset, test_dataset, config):
-    """Create optimized DataLoaders with pinned memory and workers."""
+    """Create optimized DataLoaders with pinned memory and workers, handling corrupt images."""
     train_loader = DataLoader(
         train_dataset,
         batch_size=config.BATCH_SIZE,
@@ -218,6 +255,7 @@ def create_data_loaders(train_dataset, test_dataset, config):
         pin_memory=config.PIN_MEMORY,
         num_workers=config.NUM_WORKERS,
         drop_last=True,  # Drop incomplete batches for stable batch norm
+        collate_fn=collate_fn_skip_corrupt,
     )
 
     test_loader = DataLoader(
@@ -226,6 +264,7 @@ def create_data_loaders(train_dataset, test_dataset, config):
         shuffle=False,
         pin_memory=config.PIN_MEMORY,
         num_workers=config.NUM_WORKERS,
+        collate_fn=collate_fn_skip_corrupt,
     )
 
     return train_loader, test_loader
@@ -287,6 +326,10 @@ def train_epoch(
     log_interval = max(1, num_batches // 5)  # Log ~5 times per epoch
 
     for batch_idx, (data, target) in enumerate(train_loader):
+        # Skip empty batches (all images corrupt)
+        if data.numel() == 0:
+            continue
+
         # Transfer data to device with non-blocking option
         data = data.to(device, non_blocking=non_blocking)
         target = target.to(device, non_blocking=non_blocking)
@@ -333,6 +376,10 @@ def evaluate(model, device, test_loader, criterion, non_blocking=False):
 
     with torch.no_grad():
         for data, target in test_loader:
+            # Skip empty batches (all images corrupt)
+            if data.numel() == 0:
+                continue
+
             data = data.to(device, non_blocking=non_blocking)
             target = target.to(device, non_blocking=non_blocking)
 
