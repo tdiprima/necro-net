@@ -451,7 +451,6 @@ def main():
         mode="max",  # Maximize accuracy
         factor=config.LR_FACTOR,
         patience=config.LR_PATIENCE,
-        verbose=False,
     )
 
     # Print model summary
@@ -490,7 +489,6 @@ def main():
                 mode="max",
                 factor=config.LR_FACTOR,
                 patience=config.LR_PATIENCE,
-                verbose=False,
             )
             trainable_params = sum(
                 p.numel() for p in model.parameters() if p.requires_grad
