@@ -181,7 +181,7 @@ class SafeImageFolder(datasets.ImageFolder):
             return sample, target
 
         except Exception as e:
-            print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
+            # print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
             return None
 
 
