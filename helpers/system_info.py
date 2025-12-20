@@ -23,4 +23,4 @@ def get_system_info() -> Dict[str, Any]:
     }
 
 
-print(json.dump(get_system_info(), indent=2))
+print(json.dumps(get_system_info(), indent=2))
