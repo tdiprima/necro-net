@@ -65,12 +65,63 @@ def load_model(model_path, num_classes, device):
 
 
 # =============================================================================
+# CORRUPT IMAGE HANDLING
+# =============================================================================
+
+
+class SafeImageFolder(datasets.ImageFolder):
+    """
+    Custom ImageFolder that gracefully handles corrupt images.
+    Skips corrupt images during evaluation instead of crashing.
+    """
+
+    def __getitem__(self, index):
+        """
+        Override __getitem__ to catch and handle corrupt images.
+        Returns None for corrupt images which are filtered out by collate_fn.
+        """
+        path, target = self.samples[index]
+        try:
+            # Load image
+            sample = self.loader(path)
+            if sample is None:
+                return None
+
+            # Apply transforms
+            if self.transform is not None:
+                sample = self.transform(sample)
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+
+            return sample, target
+
+        except Exception as e:
+            print(f"Warning: Skipping corrupt image: {path}")
+            return None
+
+
+def collate_fn_skip_corrupt(batch):
+    """
+    Custom collate function that filters out None values from corrupt images.
+    """
+    # Filter out None values (corrupt images)
+    batch = [item for item in batch if item is not None]
+
+    # If entire batch is corrupt, return empty tensors
+    if len(batch) == 0:
+        return torch.tensor([]), torch.tensor([])
+
+    # Use default collate for valid samples
+    return torch.utils.data.dataloader.default_collate(batch)
+
+
+# =============================================================================
 # DATA LOADING
 # =============================================================================
 
 
 def get_test_loader(test_dir):
-    """Create test data loader."""
+    """Create test data loader with corrupt image handling."""
     transform = transforms.Compose(
         [
             transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
@@ -79,7 +130,7 @@ def get_test_loader(test_dir):
         ]
     )
 
-    test_dataset = datasets.ImageFolder(root=test_dir, transform=transform)
+    test_dataset = SafeImageFolder(root=test_dir, transform=transform)
 
     test_loader = DataLoader(
         test_dataset,
@@ -87,6 +138,7 @@ def get_test_loader(test_dir):
         shuffle=False,
         num_workers=NUM_WORKERS,
         pin_memory=True,
+        collate_fn=collate_fn_skip_corrupt,
     )
 
     return test_loader, test_dataset.classes
@@ -98,12 +150,16 @@ def get_test_loader(test_dir):
 
 
 def get_predictions(model, test_loader, device):
-    """Get all predictions and true labels."""
+    """Get all predictions and true labels, skipping corrupt images."""
     all_preds = []
     all_labels = []
 
     with torch.no_grad():
         for data, target in test_loader:
+            # Skip empty batches (all images were corrupt)
+            if len(data) == 0:
+                continue
+
             data = data.to(device)
             output = model(data)
             preds = output.argmax(dim=1).cpu().numpy()
