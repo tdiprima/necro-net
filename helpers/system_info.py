@@ -1,6 +1,7 @@
+# This is from a previous implementation of benchmarking utilities.
 import json
 import platform
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import torch
 

@@ -1,4 +1,4 @@
-# Do you actually have a GPU PyTorch can use?
+# 🧠 Do you actually have a GPU PyTorch can use?
 # nvidia-smi
 
 import torch

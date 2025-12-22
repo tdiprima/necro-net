@@ -1,4 +1,4 @@
-# Is AMP enabled in your PyTorch build?
+# 🧪 Is AMP enabled in your PyTorch build?
 # CUDA version printed
 # AMP available: True
 import torch
