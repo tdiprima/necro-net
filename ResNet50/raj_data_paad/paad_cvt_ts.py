@@ -7,7 +7,7 @@ import torchvision.models as models
 model = models.resnet50(weights=None)
 
 # Load checkpoint
-checkpoint = torch.load("./local_data/output/paad_resnet50_best.pth")
+checkpoint = torch.load("./local_data/output/paad_resnet50_best.pth", weights_only=True)
 
 # Match the fc layer structure from training
 model.fc = nn.Sequential(

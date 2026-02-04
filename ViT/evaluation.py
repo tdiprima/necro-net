@@ -51,7 +51,7 @@ def load_model(architecture, num_classes, device, checkpoint_path):
         raise ValueError(f"Unsupported architecture: {architecture}")
 
     model = model.to(device)
-    state = torch.load(checkpoint_path, map_location=device)
+    state = torch.load(checkpoint_path, map_location=device, weights_only=True)
     if isinstance(state, dict) and "model_state" in state:
         model.load_state_dict(state["model_state"])
     else:

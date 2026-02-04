@@ -11,7 +11,7 @@ import torchvision.models as models
 model = models.resnet50(weights=None)
 model.fc = nn.Linear(model.fc.in_features, 10)  # match your 10 classes
 
-model.load_state_dict(torch.load("../models/DecaResNet_v3.pth"))
+model.load_state_dict(torch.load("../models/DecaResNet_v3.pth", weights_only=True))
 model.eval()
 
 # Ensure model accepts 224x224x3 input (standard for WSI patches)
@@ -31,9 +31,10 @@ except Exception as e:
     print("✅ Successfully traced model")
 
 # Validate the converted model
-loaded_model = torch.jit.load("../models/DecaResNet_v3.pt")
+loaded_model = torch.jit.load("../models/DecaResNet_v3.pt")  # nosec B614
 with torch.no_grad():
     original_output = model(test_input)
     converted_output = loaded_model(test_input)
-    assert torch.allclose(original_output, converted_output, atol=1e-5)
+    if not torch.allclose(original_output, converted_output, atol=1e-5):
+        raise RuntimeError("Model conversion validation failed: outputs do not match")
     print("✅ Model conversion validated")

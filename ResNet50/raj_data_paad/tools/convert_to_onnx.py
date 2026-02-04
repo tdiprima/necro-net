@@ -16,7 +16,7 @@ num_features = model.fc.in_features
 model.fc = torch.nn.Linear(num_features, 10)  # 10 classes instead of 1000
 
 # Load the saved weights
-checkpoint = torch.load("../models/DecaResNet_v3.pth")
+checkpoint = torch.load("../models/DecaResNet_v3.pth", weights_only=True)
 model.load_state_dict(checkpoint)  # Now the dimensions should match
 model.eval()  # Set to evaluation mode
 
