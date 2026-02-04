@@ -38,7 +38,7 @@ def load_model(architecture, num_classes, device, checkpoint_path):
     if architecture.lower() == "resnet50":
         model = models.resnet50(weights=None)
         model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
-    elif architecture.lower() in ["vit", "vit_b_16"]:
+    elif architecture.lower() in ("vit", "vit_b_16"):
         try:
             model = models.vit_b_16(weights=models.ViT_B_16_Weights.DEFAULT)
             in_features = model.heads.head.in_features

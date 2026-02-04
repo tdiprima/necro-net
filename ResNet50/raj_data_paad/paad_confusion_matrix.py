@@ -95,7 +95,7 @@ class SafeImageFolder(datasets.ImageFolder):
 
             return sample, target
 
-        except Exception as e:
+        except Exception:
             print(f"Warning: Skipping corrupt image: {path}")
             return None
 
@@ -172,7 +172,7 @@ def get_predictions(model, test_loader, device):
 
 def compute_metrics(y_true, y_pred, class_names):
     """Compute per-class and overall metrics."""
-    num_classes = len(class_names)
+    len(class_names)
 
     # Per-class metrics
     metrics = {}
@@ -367,7 +367,7 @@ def main():
     print(f"Found {num_classes} classes, {len(test_loader.dataset)} test samples")
 
     # Load model
-    print(f"\nLoading model...")
+    print("\nLoading model...")
     model, saved_class_names = load_model(MODEL_PATH, num_classes, device)
 
     # Use saved class names if available
@@ -389,7 +389,7 @@ def main():
     print("=" * 60)
     print(f"\nOverall Accuracy: {overall['accuracy']*100:.2f}%")
     print(f"Macro F1-Score:   {overall['macro_f1']*100:.2f}%")
-    print(f"\nPer-Class Performance:")
+    print("\nPer-Class Performance:")
     print("-" * 60)
     print(f"{'Class':<30} {'Precision':>10} {'Recall':>10} {'F1':>10}")
     print("-" * 60)
@@ -405,7 +405,7 @@ def main():
     cm = create_confusion_matrix(y_true, y_pred, num_classes)
 
     # Save outputs
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
     cm_image_path = os.path.join(OUTPUT_DIR, "confusion_matrix.png")
     plot_confusion_matrix(cm, class_names, cm_image_path)

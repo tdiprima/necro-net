@@ -20,7 +20,6 @@ OUTPUT MODELS:
 """
 
 import os
-import sys
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -29,7 +28,6 @@ from time import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from PIL import Image
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
@@ -98,7 +96,7 @@ class Logger:
         self.log_file = log_file
         self.also_print = also_print
         # Ensure output directory exists
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
         # Clear/create log file
         with open(log_file, "w") as f:
             f.write(
@@ -180,7 +178,7 @@ class SafeImageFolder(datasets.ImageFolder):
 
             return sample, target
 
-        except Exception as e:
+        except Exception:
             # print(f"Warning: Skipping corrupt image: {path} ({str(e)})")
             return None
 
@@ -299,7 +297,7 @@ def compute_class_weights(dataset, logger):
     import math
     
     num_classes = len(dataset.classes)
-    total_samples = len(dataset)
+    len(dataset)
 
     # Count samples per class
     class_counts = [0] * num_classes
@@ -459,7 +457,7 @@ def evaluate(model, device, test_loader, criterion, non_blocking=False):
 
 def save_model(model, path, config, epoch, accuracy, class_names, logger):
     """Save model checkpoint with metadata."""
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
 
     checkpoint = {
         "epoch": epoch,
@@ -486,13 +484,13 @@ def main():
     config = Config()
 
     # Create output directory
-    os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+    Path(config.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
     # Initialize logger (writes to file only)
     logger = Logger(config.LOG_FILE, also_print=False)
 
     # Also print a simple message to stdout
-    print(f"PAAD ResNet50 Training Started")
+    print("PAAD ResNet50 Training Started")
     print(f"Log file: {config.LOG_FILE}")
 
     # Log system information and get device
@@ -502,8 +500,8 @@ def main():
     if torch.cuda.is_available():
         print(f"Device: GPU ({torch.cuda.get_device_name(0)})")
     else:
-        print(f"Device: CPU (WARNING: Training will be slow)")
-    print(f"Training in progress...")
+        print("Device: CPU (WARNING: Training will be slow)")
+    print("Training in progress...")
 
     # Adjust workers for CPU-only systems
     if not torch.cuda.is_available():
@@ -532,20 +530,18 @@ def main():
     )
     train_loader, test_loader = create_data_loaders(train_dataset, test_dataset, config)
 
-    logger.log(f"\nDataset Summary:")
+    logger.log("\nDataset Summary:")
     logger.log(f"  Training samples: {len(train_dataset)}")
     logger.log(f"  Test samples: {len(test_dataset)}")
     logger.log(f"  Training batches: {len(train_loader)}")
     logger.log(f"  Test batches: {len(test_loader)}")
 
     # Compute class weights for imbalanced dataset
-    class_weights = compute_class_weights(train_dataset, logger)
-    class_weights = class_weights.to(device)
+    class_weights = compute_class_weights(train_dataset, logger).to(device)
 
     # Initialize model
     logger.log("\nInitializing ResNet50 model...")
-    model = create_resnet50_model(config.NUM_CLASSES, pretrained=config.PRETRAINED)
-    model = model.to(device)
+    model = create_resnet50_model(config.NUM_CLASSES, pretrained=config.PRETRAINED).to(device)
 
     # Initially freeze backbone for transfer learning warmup
     if config.FREEZE_BACKBONE_EPOCHS > 0:
@@ -575,7 +571,7 @@ def main():
     # Print model summary
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.log(f"\nModel Parameters:")
+    logger.log("\nModel Parameters:")
     logger.log(f"  Total: {total_params:,}")
     logger.log(f"  Trainable: {trainable_params:,}")
 
@@ -652,7 +648,7 @@ def main():
             epochs_without_improvement = 0
 
             # Save best model
-            logger.log(f"\n  *** New best accuracy! Saving best model ***")
+            logger.log("\n  *** New best accuracy! Saving best model ***")
             save_model(
                 model,
                 config.BEST_MODEL_PATH,
@@ -695,13 +691,13 @@ def main():
     logger.log("TRAINING COMPLETE")
     logger.log_separator()
 
-    logger.log(f"\nTiming:")
+    logger.log("\nTiming:")
     logger.log(
         f"  Total Training Time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)"
     )
     logger.log(f"  Average Time per Epoch: {total_time / epoch:.2f} seconds")
 
-    logger.log(f"\nBest Results:")
+    logger.log("\nBest Results:")
     logger.log(f"  Best Test Accuracy: {best_accuracy:.2f}%")
     logger.log(f"  Best Epoch: {best_epoch}")
 
@@ -709,7 +705,7 @@ def main():
     final_test_loss, final_test_acc = evaluate(
         model, device, test_loader, criterion, non_blocking=config.NON_BLOCKING
     )
-    logger.log(f"\nFinal Epoch Results:")
+    logger.log("\nFinal Epoch Results:")
     logger.log(f"  Final Test Loss: {final_test_loss:.6f}")
     logger.log(f"  Final Test Accuracy: {final_test_acc:.2f}%")
 
@@ -730,7 +726,7 @@ def main():
     )
 
     # Print completion message to stdout
-    print(f"\nTraining Complete!")
+    print("\nTraining Complete!")
     print(f"  Total time: {total_time/60:.1f} minutes")
     print(f"  Best accuracy: {best_accuracy:.2f}%")
     print(f"  Log file: {config.LOG_FILE}")
