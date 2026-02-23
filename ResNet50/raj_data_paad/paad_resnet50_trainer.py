@@ -53,6 +53,7 @@ class Config:
     LOG_FILE = os.path.expanduser("~/local_data/output/training_log.txt")
     BEST_MODEL_PATH = os.path.expanduser("~/local_data/output/paad_resnet50_best.pth")
     FINAL_MODEL_PATH = os.path.expanduser("~/local_data/output/paad_resnet50_final.pth")
+    ROC_PLOT_PATH = os.path.expanduser("~/local_data/output/roc_curves.png")
 
     # Training hyperparameters
     BATCH_SIZE = 32  # Smaller batch for ResNet50 memory requirements
@@ -490,6 +491,59 @@ def save_model(model, path, config, epoch, accuracy, class_names, logger):
 
 
 # =============================================================================
+# ROC CURVE PLOTTING
+# =============================================================================
+
+
+def plot_roc_curves(model, device, test_loader, class_names, output_path, non_blocking=False):
+    """Generate and save a per-class ROC curve PNG."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from sklearn.metrics import auc, roc_curve
+    from sklearn.preprocessing import label_binarize
+
+    model.eval()
+    all_targets = []
+    all_probs = []
+
+    with torch.no_grad():
+        for data, target in test_loader:
+            if data.numel() == 0:
+                continue
+            data = data.to(device, non_blocking=non_blocking)
+            target = target.to(device, non_blocking=non_blocking)
+            output = model(data)
+            probs = torch.softmax(output, dim=1)
+            all_targets.append(target.cpu())
+            all_probs.append(probs.cpu())
+
+    all_targets = torch.cat(all_targets).numpy()
+    all_probs = torch.cat(all_probs).numpy()
+
+    n_classes = len(class_names)
+    targets_bin = label_binarize(all_targets, classes=list(range(n_classes)))
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    for i, class_name in enumerate(class_names):
+        fpr, tpr, _ = roc_curve(targets_bin[:, i], all_probs[:, i])
+        roc_auc = auc(fpr, tpr)
+        ax.plot(fpr, tpr, label=f"{class_name} (AUC = {roc_auc:.3f})")
+
+    ax.plot([0, 1], [0, 1], "k--", label="Random")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title("ROC Curves — PAAD ResNet50")
+    ax.legend(loc="lower right", fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+
+
+# =============================================================================
 # MAIN TRAINING LOOP
 # =============================================================================
 
@@ -652,6 +706,7 @@ def main():
         logger.log(f"\n  Train Loss: {train_loss:.6f} | Train Acc: {train_acc:.2f}%")
         logger.log(f"  Test Loss:  {test_loss:.6f} | Test Acc:  {test_acc:.2f}% | AUC: {test_auc:.4f}")
         logger.log(f"  Epoch Time: {epoch_time:.1f}s")
+        print(f"  Epoch {epoch}/{config.NUM_EPOCHS} | Train Acc: {train_acc:.2f}% | Test Acc: {test_acc:.2f}% | AUC: {test_auc:.4f} | Time: {epoch_time:.1f}s")
 
         # Update learning rate scheduler
         scheduler.step(test_acc)
@@ -725,6 +780,14 @@ def main():
     logger.log(f"  Final Test Accuracy: {final_test_acc:.2f}%")
     logger.log(f"  Final Test AUC (macro OvR): {final_test_auc:.4f}")
 
+    # Save ROC curve plot
+    plot_roc_curves(
+        model, device, test_loader, train_dataset.classes,
+        config.ROC_PLOT_PATH, non_blocking=config.NON_BLOCKING,
+    )
+    logger.log(f"\nROC curve saved to: {config.ROC_PLOT_PATH}")
+    print(f"  ROC curve saved to: {config.ROC_PLOT_PATH}")
+
     logger.log("\n")
     logger.log_separator()
     logger.log("MODEL FILES")
@@ -745,6 +808,7 @@ def main():
     print("\nTraining Complete!")
     print(f"  Total time: {total_time/60:.1f} minutes")
     print(f"  Best accuracy: {best_accuracy:.2f}%")
+    print(f"  Final AUC (macro OvR): {final_test_auc:.4f}")
     print(f"  Log file: {config.LOG_FILE}")
     print(f"\n>>> FOR PREDICTIONS, USE: {config.BEST_MODEL_PATH}")
 
