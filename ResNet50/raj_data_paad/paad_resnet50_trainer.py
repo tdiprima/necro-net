@@ -28,6 +28,7 @@ from time import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from sklearn.metrics import roc_auc_score
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
@@ -433,6 +434,8 @@ def evaluate(model, device, test_loader, criterion, non_blocking=False):
     test_loss = 0
     correct = 0
     total = 0
+    all_targets = []
+    all_probs = []
 
     with torch.no_grad():
         for data, target in test_loader:
@@ -449,10 +452,22 @@ def evaluate(model, device, test_loader, criterion, non_blocking=False):
             correct += pred.eq(target.view_as(pred)).sum().item()
             total += target.size(0)
 
+            probs = torch.softmax(output, dim=1)
+            all_targets.append(target.cpu())
+            all_probs.append(probs.cpu())
+
     avg_loss = test_loss / len(test_loader)
     accuracy = 100.0 * correct / total
 
-    return avg_loss, accuracy
+    import numpy as np
+    all_targets = torch.cat(all_targets).numpy()
+    all_probs = torch.cat(all_probs).numpy()
+    try:
+        auc = roc_auc_score(all_targets, all_probs, multi_class="ovr", average="macro")
+    except ValueError:
+        auc = float("nan")
+
+    return avg_loss, accuracy, auc
 
 
 def save_model(model, path, config, epoch, accuracy, class_names, logger):
@@ -628,14 +643,14 @@ def main():
         )
 
         # Evaluate
-        test_loss, test_acc = evaluate(
+        test_loss, test_acc, test_auc = evaluate(
             model, device, test_loader, criterion, non_blocking=config.NON_BLOCKING
         )
 
         epoch_time = time() - epoch_start
 
         logger.log(f"\n  Train Loss: {train_loss:.6f} | Train Acc: {train_acc:.2f}%")
-        logger.log(f"  Test Loss:  {test_loss:.6f} | Test Acc:  {test_acc:.2f}%")
+        logger.log(f"  Test Loss:  {test_loss:.6f} | Test Acc:  {test_acc:.2f}% | AUC: {test_auc:.4f}")
         logger.log(f"  Epoch Time: {epoch_time:.1f}s")
 
         # Update learning rate scheduler
@@ -702,12 +717,13 @@ def main():
     logger.log(f"  Best Epoch: {best_epoch}")
 
     # Final evaluation
-    final_test_loss, final_test_acc = evaluate(
+    final_test_loss, final_test_acc, final_test_auc = evaluate(
         model, device, test_loader, criterion, non_blocking=config.NON_BLOCKING
     )
     logger.log("\nFinal Epoch Results:")
     logger.log(f"  Final Test Loss: {final_test_loss:.6f}")
     logger.log(f"  Final Test Accuracy: {final_test_acc:.2f}%")
+    logger.log(f"  Final Test AUC (macro OvR): {final_test_auc:.4f}")
 
     logger.log("\n")
     logger.log_separator()
@@ -718,7 +734,7 @@ def main():
         f"    (Best validation accuracy: {best_accuracy:.2f}% at epoch {best_epoch})"
     )
     logger.log(f"\n    Final epoch model: {config.FINAL_MODEL_PATH}")
-    logger.log(f"    (Final accuracy: {final_test_acc:.2f}% - for reference only)")
+    logger.log(f"    (Final accuracy: {final_test_acc:.2f}%, AUC: {final_test_auc:.4f} - for reference only)")
     logger.log_separator()
 
     logger.log(
