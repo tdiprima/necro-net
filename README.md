@@ -1,10 +1,6 @@
 # Necro Net
 
-I built this because I had to train models on real pathology images.  Testing ResNet50 versus ViT.
-
----
-
-This repo trains image classifiers on pancreatic adenocarcinoma (PAAD) histology slides using two different architectures: a fine-tuned ResNet50 and a Vision Transformer (ViT). Both start from ImageNet pretrained weights and adapt to the target classes.
+Classifying pancreatic adenocarcinoma (PAAD) from histology slides is hard — limited labeled data, high class imbalance, and no clear winner between CNN and transformer architectures for this domain. This repo benchmarks ResNet50 against a Vision Transformer (ViT) on real PAAD histopathology images to find out which generalizes better under those constraints.
 
 ## ResNet50
 
