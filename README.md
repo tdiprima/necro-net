@@ -1,5 +1,7 @@
 # Necro Net
 
+ResNet50 vs Vision Transformer, histology
+
 Classifying pancreatic adenocarcinoma (PAAD) from histology slides is hard — limited labeled data, high class imbalance, and no clear winner between CNN and transformer architectures for this domain. This repo benchmarks ResNet50 against a Vision Transformer (ViT) on real PAAD histopathology images to find out which generalizes better under those constraints.
 
 ## ResNet50
